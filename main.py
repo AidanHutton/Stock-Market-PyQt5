@@ -18,7 +18,7 @@ current_tab = []
 
 class StockInfo:
 
-    def png(self, title, rsi, mfi, imi, sma, ss):
+    def insights_png(self, title, rsi, mfi, imi, sma, ss):
         mpl_style(dark=True)
         font = {'family': 'serif', 'weight': 'bold', 'size': 12}
         matplotlib.rc('font', **font)
@@ -60,7 +60,7 @@ class StockInfo:
         plt.text(2, -1, text_string)
 
         # Save the graphs as a png to be able to view or use in Kivy.
-        return plt.savefig("StockInfo.png")
+        return plt.savefig("Insights.png")
 
     # Calculates the simple moving average of the stock.
     def sma(self, window_size):
@@ -73,11 +73,10 @@ class StockInfo:
 
     # Calculates the relative strength index of the stock.
     def rsi(self):
-        closing_prices = self.close[::-1]
         gain = []
         loss = []
-        for i in range(len(closing_prices) - 1):
-            change = closing_prices[i] - closing_prices[i + 1]
+        for i in range(len(self.close) - 1):
+            change = self.close[i + 1] - self.close[i]
             if change >= 0:
                 gain.append(change)
             else:
@@ -86,6 +85,26 @@ class StockInfo:
         ave_loss = abs(sum(loss) / len(loss))
         relative_strength = ave_gain / ave_loss
         return round(100 - (100 / (1 + relative_strength)), 2)
+
+    # Calculate the relative strength index over the last 3 months.
+    def three_month_rsi(self):
+        rsi_values = []
+        for i in range(len(self.close) - 14):
+            gain = []
+            loss = []
+            for j in range(14):
+                change = self.close[i + 1] - self.close[i]
+                if change >= 0:
+                    gain.append(change)
+                else:
+                    loss.append(change)
+                i += 1
+            ave_gain = (sum(gain) / len(gain))
+            ave_loss = abs(sum(loss) / len(loss))
+            relative_strength = ave_gain / ave_loss
+            rsi = round(100 - (100 / (1 + relative_strength)), 2)
+            rsi_values.append(rsi)
+        return rsi_values
 
     # Calculates the money flow index of the stock.
     def mfi(self):
@@ -104,6 +123,27 @@ class StockInfo:
         money_ratio = abs(sum(gain)) / abs(sum(loss))
         return round(100 - (100 / (1 + money_ratio)), 2)
 
+    # Calculate the money flow index over the last three months.
+    def three_month_mfi(self):
+        mfi_values = []
+        daily_averages = []
+        gain = []
+        loss = []
+        for i in range(len(self.close)):
+            daily_average = (self.low[i] + self.high[i] + self.close[i]) / 3
+            daily_averages.append(daily_average)
+        for i in range(len(daily_averages) - 14):
+            for j in range(14):
+                change = daily_averages[i + 1] - daily_averages[i]
+                if change >= 0:
+                    gain.append(change)
+                else:
+                    loss.append(change)
+            money_ratio = abs(sum(gain)) / abs(sum(loss))
+            mfi = round(100 - (100 / (1 + money_ratio)), 2)
+            mfi_values.append(mfi)
+        return mfi_values
+
     # Calculates the intraday momentum index of the stock.
     def imi(self):
         closing_prices = self.close[::-1]
@@ -117,7 +157,55 @@ class StockInfo:
                 loss.append(change)
         return round((sum(gain) / (sum(gain) + abs(sum(loss)))) * 100, 2)
 
-    # Quick calculation to see if you should buy, sell, or hold.
+    # Calculate the intraday momentum index for the last three months.
+    def three_month_imi(self):
+        imi_values = []
+        for i in range(len(self.close) - 14):
+            gain = []
+            loss = []
+            for j in range(14):
+                change = self.close[i + 1] - self.close[i]
+                if change >= 0:
+                    gain.append(change)
+                else:
+                    loss.append(change)
+                i += 1
+            imi = round((sum(gain) / (sum(gain) + abs(sum(loss)))) * 100, 2)
+            imi_values.append(imi)
+        return imi_values
+
+    def indicator_png(self, rsi, imi, mfi, sma, title):
+        mpl_style(dark=True)
+        font = {'family': 'serif', 'weight': 'bold', 'size': 12}
+        matplotlib.rc('font', **font)
+        fig = matplotlib.pyplot.gcf()
+        fig.set_size_inches(13, 6.285)
+        plt.clf()
+
+        # Break the overall graph into different sections, so we can have multiple graphs.
+        ax = plt.subplot2grid((3, 4), (0, 0), rowspan=2, colspan=4)
+        # zorder, alpha and lw will add an afterglow for the graphs lines.
+        ax.plot(rsi, color='lime', zorder=5, alpha=0.1, lw=8)
+        ax.plot(rsi, label="RSI", color='lime')
+        ax.plot(mfi, color='cyan', zorder=5, alpha=0.1, lw=8)
+        ax.plot(mfi, label="MFI", color='cyan')
+        ax.plot(imi, color='#FF00FF', zorder=5, alpha=0.1, lw=8)
+        ax.plot(imi, label="IMI", color='#FF00FF')
+        ax.legend(bbox_to_anchor=(1.1, 1.025))
+        ax.grid(color='white', linestyle='-', linewidth=0.1)
+        ax.set_xticklabels([])
+        plt.title(title.capitalize() + ' Stock Info')
+
+        ax2 = plt.subplot2grid((3, 4), (2, 0), rowspan=1, colspan=4)
+        ax2.plot(sma, color='cyan', zorder=5, alpha=0.1, lw=8)
+        ax2.plot(sma, label="SMA", color='cyan')
+        ax2.legend(bbox_to_anchor=(1.1, 1.025))
+        ax2.grid(color='white', linestyle='-', linewidth=0.1)
+
+        # Save the graphs as a png to be able to view or use in PyQT5.
+        return plt.savefig("Indicator.png")
+
+    # Quick calculation to see if you should buy, sell, or hold. This will be replaced later with Machine Learning.
     def stock_strength(self, rsi, mfi, imi, sma):
         trade = 0
         if rsi >= 70:
@@ -175,6 +263,7 @@ def market_trend():
     else:
         return "Bearish"
 
+
 class MainWindow(QMainWindow):
     def __init__(self):
         super(MainWindow, self).__init__()
@@ -192,8 +281,11 @@ class MainWindow(QMainWindow):
         self.report_button = QtWidgets.QPushButton(self)
 
         self.menu_button = QtWidgets.QPushButton(self)
-        self.menu_button_list = [self.information_button, self.insights_button, self.indicators_button,
-                            self.predictions_button, self.report_button]
+        self.menu_button_list = [self.information_button,
+                                 self.insights_button,
+                                 self.indicators_button,
+                                 self.predictions_button,
+                                 self.report_button]
 
         self.text_input = QtWidgets.QLineEdit(self)
         self.submit_button = QtWidgets.QPushButton(self)
@@ -222,56 +314,41 @@ class MainWindow(QMainWindow):
         self.current_tab.setStyleSheet("background-color: #0c1c23")
         self.current_tab.move(500, 45)
 
+        for i in range(len(self.menu_button_list)):
+            self.menu_button_list[i].setGeometry(0, 0, 170, 50)
+            self.menu_button_list[i].setIconSize(QSize(40, 40))
+            self.menu_button_list[i].setFont(QFont(self.font_style, self.font_size))
+            self.menu_button_list[i].setStyleSheet("text-align:left;" "color: white")
+
         self.information_button.setText("   Information")
-        self.information_button.setGeometry(0, 0, 170, 50)
         self.information_button.setIcon(QIcon('Information Icon White.png'))
-        self.information_button.setIconSize(QSize(40, 40))
-        self.information_button.setFont(QFont(self.font_style, self.font_size))
-        self.information_button.setStyleSheet("text-align:left;" "color: white")
         self.information_button.move(30, 110)
         self.information_button.clicked.connect(lambda: self.current_tab_update(self.information_button))
         self.information_button.clicked.connect(self.display_information_page)
 
         self.insights_button.setText("   Insights")
-        self.insights_button.setGeometry(0, 0, 170, 50)
         self.insights_button.setIcon(QIcon('Insight Icon.png'))
-        self.insights_button.setStyleSheet("text-align:left;" "color: white")
-        self.insights_button.setIconSize(QSize(40, 40))
-        self.insights_button.setFont(QFont(self.font_style, self.font_size))
         self.insights_button.move(30, 160)
         self.insights_button.clicked.connect(lambda: self.current_tab_update(self.insights_button))
         self.insights_button.clicked.connect(self.display_insights_graph)
 
         self.indicators_button.setText("   Indicators")
-        self.indicators_button.setGeometry(0, 0, 170, 50)
         self.indicators_button.setIcon(QIcon('Indicator Icon.png'))
-        self.indicators_button.setStyleSheet("text-align:left;" "color: white")
-        self.indicators_button.setIconSize(QSize(40, 40))
-        self.indicators_button.setFont(QFont(self.font_style, self.font_size))
         self.indicators_button.move(30, 210)
         self.indicators_button.clicked.connect(lambda: self.current_tab_update(self.indicators_button))
         self.indicators_button.clicked.connect(self.display_indicators_graph)
 
         self.predictions_button.setText("   Predictions")
-        self.predictions_button.setGeometry(0, 0, 170, 50)
         self.predictions_button.setIcon(QIcon('Prediction Icon.png'))
-        self.predictions_button.setStyleSheet("text-align:left;" "color: white")
-        self.predictions_button.setIconSize(QSize(40, 40))
-        self.predictions_button.setFont(QFont(self.font_style, self.font_size))
         self.predictions_button.move(30, 260)
         self.predictions_button.clicked.connect(lambda: self.current_tab_update(self.predictions_button))
         self.predictions_button.clicked.connect(self.display_predictions_graph)
 
         self.report_button.setText("   PDF Reports")
-        self.report_button.setGeometry(0, 0, 170, 50)
         self.report_button.setIcon(QIcon('Report Icon.png'))
-        self.report_button.setStyleSheet("text-align:left;" "color: white")
-        self.report_button.setIconSize(QSize(40, 40))
-        self.report_button.setFont(QFont(self.font_style, self.font_size))
         self.report_button.move(30, 310)
         self.report_button.clicked.connect(lambda: self.current_tab_update(self.report_button))
         self.report_button.clicked.connect(self.display_reports_page)
-
 
         self.menu_button.setText("   Menu")
         self.menu_button.setGeometry(0, 0, 170, 50)
@@ -355,7 +432,7 @@ class MainWindow(QMainWindow):
             print(current_tab[i])
 
     def display_insights_graph(self):
-        self.graph.setPixmap(QPixmap('StockInfo.png'))
+        self.graph.setPixmap(QPixmap('Insights.png'))
         self.information_page.setGeometry(0, 0, 0, 0)
         self.indicator_graph.setGeometry(0, 0, 0, 0)
         self.predictions_graph.setGeometry(0, 0, 0, 0)
@@ -368,13 +445,13 @@ class MainWindow(QMainWindow):
             print(current_tab[i])
 
     def display_indicators_graph(self):
-        self.indicator_graph.setText("Coming Soon!")
-        self.indicator_graph.setStyleSheet("text-align:center;" "color: white;" "background-color: #0c1c23")
+        self.indicator_graph.setPixmap(QPixmap('Indicator.png'))
         self.information_page.setGeometry(0, 0, 0, 0)
         self.graph.setGeometry(0, 0, 0, 0)
         self.predictions_graph.setGeometry(0, 0, 0, 0)
         self.report_page.setGeometry(0, 0, 0, 0)
-        self.indicator_graph.setGeometry(550, 250, 100, 100)
+        self.indicator_graph.setGeometry(220, 110, 750, 345)
+        self.indicator_graph.setScaledContents(True)
         current_tab.clear()
         current_tab.append(self.indicator_graph)
         for i in range(len(current_tab)):
@@ -407,7 +484,6 @@ class MainWindow(QMainWindow):
             print(current_tab[i])
 
 
-
 def main_window():
     app = QApplication(sys.argv)
     win = MainWindow()
@@ -416,6 +492,7 @@ def main_window():
     today = datetime.datetime.today()
     three_month = date.today() + relativedelta(months=-3)
     three_weeks = date.today() + relativedelta(days=-21)
+    three_month_indicator = date.today() + relativedelta(days=-98)
     stock_info = StockInfo(yf.Ticker(stock), three_month, today,
                            yf.Ticker(stock).history(period='1d', start=three_month, end=today)['Open'],
                            yf.Ticker(stock).history(period='1d', start=three_month, end=today)['Close'],
@@ -424,19 +501,27 @@ def main_window():
                            yf.Ticker(stock).history(period='1d', start=three_month, end=today)['Volume'])
     three_week_calculations = StockInfo(yf.Ticker(stock), three_weeks, today,
                                         yf.Ticker(stock).history(period='1d', start=three_weeks, end=today)['Open'],
-                                        yf.Ticker(stock).history(period='1d', start=three_weeks, end=today)[
-                                            'Close'],
+                                        yf.Ticker(stock).history(period='1d', start=three_weeks, end=today)['Close'],
                                         yf.Ticker(stock).history(period='1d', start=three_weeks, end=today)['High'],
                                         yf.Ticker(stock).history(period='1d', start=three_weeks, end=today)['Low'],
-                                        yf.Ticker(stock).history(period='1d', start=three_weeks, end=today)[
-                                            'Volume'])
-    stock_info.png(title=stock, rsi=three_week_calculations.rsi(), mfi=three_week_calculations.mfi(),
-                   imi=three_week_calculations.imi(), sma=stock_info.sma(window_size=3),
-                   ss=three_week_calculations.stock_strength(rsi=three_week_calculations.rsi(),
+                                        yf.Ticker(stock).history(period='1d', start=three_weeks, end=today)['Volume'])
+    three_month_indicator_calculations = StockInfo(yf.Ticker(stock), three_month_indicator, today,
+                                        yf.Ticker(stock).history(period='1d', start=three_month_indicator, end=today)['Open'],
+                                        yf.Ticker(stock).history(period='1d', start=three_month_indicator, end=today)['Close'],
+                                        yf.Ticker(stock).history(period='1d', start=three_month_indicator, end=today)['High'],
+                                        yf.Ticker(stock).history(period='1d', start=three_month_indicator, end=today)['Low'],
+                                        yf.Ticker(stock).history(period='1d', start=three_month_indicator, end=today)['Volume'])
+    stock_info.insights_png(title=stock, rsi=three_week_calculations.rsi(), mfi=three_week_calculations.mfi(),
+                            imi=three_week_calculations.imi(), sma=stock_info.sma(window_size=3),
+                            ss=three_week_calculations.stock_strength(rsi=three_week_calculations.rsi(),
                                                              mfi=three_week_calculations.mfi(),
                                                              imi=three_week_calculations.imi(),
                                                              sma=stock_info.sma(window_size=3)))
-
+    three_month_indicator_calculations.indicator_png(title=stock,
+                                                     rsi=three_month_indicator_calculations.three_month_rsi(),
+                                                     mfi=three_month_indicator_calculations.three_month_mfi(),
+                                                     imi=three_month_indicator_calculations.three_month_imi(),
+                                                     sma=stock_info.sma(window_size=3))
     win.show()
     sys.exit(app.exec_())
 
