@@ -18,6 +18,21 @@ current_tab = []
 
 class StockInfo:
 
+    def information_png(self):
+        mpl_style(dark=True)
+        font = {'family': 'serif', 'weight': 'bold', 'size': 16}
+        matplotlib.rc('font', **font)
+        fig = matplotlib.pyplot.gcf()
+        fig.set_size_inches(13, 6.285)
+        plt.clf()
+        plt.axis('off')
+
+        plt.text(.01, .45, "52 Week High: ")
+        plt.text(.01, .35, "52 Week Low:  ")
+
+        # Save the graphs as a png to be able to view or use in Kivy.
+        return plt.savefig("Information.png")
+
     def insights_png(self, title, rsi, mfi, imi, sma, ss):
         mpl_style(dark=True)
         font = {'family': 'serif', 'weight': 'bold', 'size': 12}
@@ -273,7 +288,7 @@ class MainWindow(QMainWindow):
         self.font_style = 'Serif'
         self.font_size = 12
 
-        self.current_tab = QtWidgets.QLabel(self)
+        self.current_tab = []
         self.information_button = QtWidgets.QPushButton(self)
         self.insights_button = QtWidgets.QPushButton(self)
         self.indicators_button = QtWidgets.QPushButton(self)
@@ -296,6 +311,12 @@ class MainWindow(QMainWindow):
         self.predictions_graph = QtWidgets.QLabel(self)
         self.report_page = QtWidgets.QLabel(self)
 
+        self.tab_image_dictionary = {"information_page": self.information_page,
+                                     "insights_page": self.graph,
+                                     "indicators_page": self.indicator_graph,
+                                     "predictions_page": self.predictions_graph,
+                                     "report_page": self.report_page}
+
         self.setGeometry(200, 200, 1000, 600)
         self.setWindowTitle("Heritage Stock Analysis")
         self.UILayout()
@@ -307,12 +328,6 @@ class MainWindow(QMainWindow):
         self.graph.setText('')
         self.graph.move(250, 110)
         self.graph.setStyleSheet("background-color: #0c1c23")
-
-        self.current_tab.setText("")
-        self.current_tab.setFont(QFont(self.font_style, self.font_size))
-        self.current_tab.setStyleSheet("text-align:left;" "color: white")
-        self.current_tab.setStyleSheet("background-color: #0c1c23")
-        self.current_tab.move(500, 45)
 
         for i in range(len(self.menu_button_list)):
             self.menu_button_list[i].setGeometry(0, 0, 170, 50)
@@ -374,8 +389,8 @@ class MainWindow(QMainWindow):
     def current_tab_update(self, tab_name):
         for i in range(len(self.menu_button_list)):
             self.menu_button_list[i].setStyleSheet("text-align:left;" "color: white")
-            print(self.menu_button_list[i])
         tab_name.setStyleSheet("text-align:left;" "color: lime")
+        return tab_name
 
     def side_menu_display(self):
         if self.counter % 2 == 1:
@@ -397,9 +412,11 @@ class MainWindow(QMainWindow):
             print(self.current_tab)
             self.current_tab.setScaledContents(True)
             """
-
-            self.graph.setGeometry(220, 110, 750, 345)
-            self.graph.setScaledContents(True)
+            for i in range(len(current_tab)):
+                self.tab_image_dictionary.get(current_tab[0]).setGeometry(220, 110, 750, 345)
+                self.tab_image_dictionary.get(current_tab[0]).setScaledContents(True)
+            # self.graph.setGeometry(220, 110, 750, 345)
+            # self.graph.setScaledContents(True)
         else:
             self.menu_button.setIcon(QIcon('Menu Icon.png'))
             self.menu_button.setText('')
@@ -410,8 +427,13 @@ class MainWindow(QMainWindow):
             self.predictions_button.hide()
             self.report_button.hide()
             self.setStyleSheet("background-color: #0c1c23")
-            self.graph.setGeometry(50, 110, 900, 415)
-            self.graph.setScaledContents(True)
+            for i in range(len(current_tab)):
+                self.tab_image_dictionary.get(current_tab[0]).setGeometry(50, 110, 900, 415)
+                self.tab_image_dictionary.get(current_tab[0]).setScaledContents(True)
+                # current_tab[0].setGeometry(50, 110, 900, 415)
+                # current_tab[0].setScaledContnents(True)
+            # self.graph.setGeometry(50, 110, 900, 415)
+            # self.graph.setScaledContents(True)
 
         self.counter += 1
 
@@ -419,17 +441,15 @@ class MainWindow(QMainWindow):
         self.stock = self.text_input.text().upper()
 
     def display_information_page(self):
-        self.information_page.setText("Coming Soon!")
-        self.information_page.setStyleSheet("text-align:center;" "color: white;" "background-color: #0c1c23")
+        self.information_page.setPixmap(QPixmap('Information.png'))
         self.graph.setGeometry(0, 0, 0, 0)
         self.indicator_graph.setGeometry(0, 0, 0, 0)
         self.predictions_graph.setGeometry(0, 0, 0, 0)
         self.report_page.setGeometry(0, 0, 0, 0)
-        self.information_page.setGeometry(550, 250, 100, 100)
+        self.information_page.setGeometry(220, 110, 750, 345)
+        self.information_page.setScaledContents(True)
         current_tab.clear()
-        current_tab.append(self.information_page)
-        for i in range(len(current_tab)):
-            print(current_tab[i])
+        current_tab.append("information_page")
 
     def display_insights_graph(self):
         self.graph.setPixmap(QPixmap('Insights.png'))
@@ -440,9 +460,11 @@ class MainWindow(QMainWindow):
         self.graph.setGeometry(220, 110, 750, 345)
         self.graph.setScaledContents(True)
         current_tab.clear()
-        current_tab.append(self.graph)
+        current_tab.append("insights_page")
+        """
         for i in range(len(current_tab)):
             print(current_tab[i])
+        """
 
     def display_indicators_graph(self):
         self.indicator_graph.setPixmap(QPixmap('Indicator.png'))
@@ -453,9 +475,7 @@ class MainWindow(QMainWindow):
         self.indicator_graph.setGeometry(220, 110, 750, 345)
         self.indicator_graph.setScaledContents(True)
         current_tab.clear()
-        current_tab.append(self.indicator_graph)
-        for i in range(len(current_tab)):
-            print(current_tab[i])
+        current_tab.append("indicators_page")
 
     def display_predictions_graph(self):
         self.predictions_graph.setText("Coming Soon!")
@@ -466,9 +486,7 @@ class MainWindow(QMainWindow):
         self.report_page.setGeometry(0, 0, 0, 0)
         self.predictions_graph.setGeometry(550, 250, 100, 100)
         current_tab.clear()
-        current_tab.append(self.predictions_graph)
-        for i in range(len(current_tab)):
-            print(current_tab[i])
+        current_tab.append("predictions_page")
 
     def display_reports_page(self):
         self.report_page.setText("Coming Soon!")
@@ -479,19 +497,18 @@ class MainWindow(QMainWindow):
         self.predictions_graph.setGeometry(0, 0, 0, 0)
         self.report_page.setGeometry(550, 250, 100, 100)
         current_tab.clear()
-        current_tab.append(self.report_page)
-        for i in range(len(current_tab)):
-            print(current_tab[i])
+        current_tab.append("report_page")
 
 
 def main_window():
     app = QApplication(sys.argv)
     win = MainWindow()
 
-    stock = 'AAPL'
+    stock = 'NVDA'
     today = datetime.datetime.today()
     three_month = date.today() + relativedelta(months=-3)
     three_weeks = date.today() + relativedelta(days=-21)
+    one_year = date.today() + relativedelta(years=-1)
     three_month_indicator = date.today() + relativedelta(days=-98)
     stock_info = StockInfo(yf.Ticker(stock), three_month, today,
                            yf.Ticker(stock).history(period='1d', start=three_month, end=today)['Open'],
@@ -511,6 +528,12 @@ def main_window():
                                         yf.Ticker(stock).history(period='1d', start=three_month_indicator, end=today)['High'],
                                         yf.Ticker(stock).history(period='1d', start=three_month_indicator, end=today)['Low'],
                                         yf.Ticker(stock).history(period='1d', start=three_month_indicator, end=today)['Volume'])
+    one_year_stock_info = StockInfo(yf.Ticker(stock), one_year, today,
+                           yf.Ticker(stock).history(period='1d', start=one_year, end=today)['Open'],
+                           yf.Ticker(stock).history(period='1d', start=one_year, end=today)['Close'],
+                           yf.Ticker(stock).history(period='1d', start=one_year, end=today)['High'],
+                           yf.Ticker(stock).history(period='1d', start=one_year, end=today)['Low'],
+                           yf.Ticker(stock).history(period='1d', start=one_year, end=today)['Volume'])
     stock_info.insights_png(title=stock, rsi=three_week_calculations.rsi(), mfi=three_week_calculations.mfi(),
                             imi=three_week_calculations.imi(), sma=stock_info.sma(window_size=3),
                             ss=three_week_calculations.stock_strength(rsi=three_week_calculations.rsi(),
@@ -522,6 +545,7 @@ def main_window():
                                                      mfi=three_month_indicator_calculations.three_month_mfi(),
                                                      imi=three_month_indicator_calculations.three_month_imi(),
                                                      sma=stock_info.sma(window_size=3))
+    one_year_stock_info.information_png()
     win.show()
     sys.exit(app.exec_())
 
